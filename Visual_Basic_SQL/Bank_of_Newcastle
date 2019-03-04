@@ -1,0 +1,288 @@
+'User login ID
+
+  Public Sub New()
+        InitializeComponent()
+        provider = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source ="
+        dataFile = "|DataDirectory|\UserDataV2.accdb"
+        connString = provider & dataFile
+        myConnection.ConnectionString = connString
+        myConnection.Open()
+
+        Dim str As String = "SELECT * FROM Accounts WHERE ([ID Number] = " & UserName & ")"
+        Dim cmd As OleDbCommand = New OleDbCommand(str, myConnection)
+        Dim sdr As OleDbDataReader = cmd.ExecuteReader()
+        sdr.Read()
+        balance = Convert.ToDouble(sdr("Balance"))
+        With cbxAccounts
+            cbxAccounts.DisplayMember = "A000" + Convert.ToString(sdr("Account Number"))
+        End With
+        cbxAccounts.Items.Add("A000" + Convert.ToString(sdr("Account Number")))
+        myConnection.Close()
+
+    End Sub
+
+
+
+'User Login Page
+Private Sub BtnLogin_Click(sender As Object, e As EventArgs) Handles BtnLogin.Click
+
+        Dim typeIdentifier As String = tbxLogin.Text
+
+        If typeIdentifier = "" Then
+            MessageBox.Show("Please enter a user ID")
+            Return
+        End If
+
+
+        provider = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source ="
+        dataFile = "|DataDirectory|\UserDataV2.accdb"
+        connString = provider & dataFile
+        myConnection.ConnectionString = connString
+        myConnection.Open()
+
+
+        Dim sPassword As String = tbxPassword.Text
+        Dim loginChar As Char = typeIdentifier.Chars(0)
+        loginChar = UCase(loginChar)
+        Dim loginDetails As String = Mid(typeIdentifier, 2, Len(typeIdentifier))
+        Dim loginNum As Int32 = loginDetails
+
+
+        If StrComp(loginChar, "C") = 0 Or StrComp(loginChar, "B") = 0 Then
+            Dim str As String = "SELECT * FROM Personal WHERE ([ID Number] = " & loginNum & ")"
+            Dim cmd As OleDbCommand = New OleDbCommand(str, myConnection)
+            Dim sdr As OleDbDataReader = cmd.ExecuteReader()
+
+            If (sdr.Read() = True) Then
+                If StrComp(sdr("Password").ToString, sPassword) = 0 Then
+                    UserName = loginNum
+                    tbxLogin.Clear()
+                    tbxPassword.Clear()
+                    myConnection.Close()
+                    Dim Login As New loginViewCustomer
+                    Me.Hide()
+                    Login.Show()
+                Else MessageBox.Show("Incorrect Password")
+                    myConnection.Close()
+                End If
+
+            Else MessageBox.Show("User Does Not Exist")
+                myConnection.Close()
+            End If
+
+        ElseIf StrComp(loginChar, "E") = 0 Then
+            Dim str As String = "SELECT * FROM Employees WHERE ([Employee ID] = " & loginNum & ")"
+            Dim cmd As OleDbCommand = New OleDbCommand(str, myConnection)
+            Dim sdr As OleDbDataReader = cmd.ExecuteReader()
+
+            If (sdr.Read() = True) Then
+                If StrComp(sdr("Password").ToString, sPassword) = 0 Then
+                    UserName = loginNum
+                    tbxLogin.Clear()
+                    tbxPassword.Clear()
+                    myConnection.Close()
+                    Dim Login As New LoginViewEmployee
+                    Me.Hide()
+                    Login.Show()
+                Else MessageBox.Show("Incorrect Password")
+                    myConnection.Close()
+                End If
+
+            Else MessageBox.Show("User Does Not Exist")
+                myConnection.Close()
+            End If
+            myConnection.Close()
+        End If
+        myConnection.Close()
+
+    End Sub
+    
+ 'New user creation
+    
+    Private Sub btnCreate_Click(sender As Object, e As EventArgs) Handles btnCreate.Click
+        Dim title As String = cbxTitle.Text
+        Dim firstName As String = tbxFirstName.Text
+        Dim surname As String = tbxSurname.Text
+        Dim email As String = tbxEmail.Text
+        Dim DOBDay As String = cmbDay.Text
+        Dim DOBMonth As String = cmbMonth.Text
+        Dim DOBYear As String = cmbYear.Text
+        Dim address As String = tbxAddress.Text
+        Dim taxFileNumber As Int32 = Convert.ToInt32(tbxTFN.Text)
+        Dim password As String = tbxPassword.Text
+        Dim passwordConfirm As String = tbxConfirmPassword.Text
+
+        If title = "" Or firstName = "" Or surname = "" Or email = "" Or address = "" Or taxFileNumber = 0 Or password = "" Or passwordConfirm = "" Or DOBDay = "" Or DOBMonth = "" Or DOBYear = "" Then
+            MessageBox.Show("Please complete form items")
+            Return
+        End If
+        If uploadBool = False Then
+            MessageBox.Show("Please Upload ID")
+            Return
+        End If
+
+        If StrComp(password, passwordConfirm) <> 0 Then
+            MessageBox.Show("Please ensure passwords match")
+            Return
+        End If
+        Dim dateOfBirth As String
+        dateOfBirth = "#" + DOBMonth + "-" + DOBDay + "-" + DOBYear + "#"
+        Dim Trythis As Date = Convert.ToDateTime(dateOfBirth)
+
+        provider = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source ="
+        dataFile = "|DataDirectory|\UserDataV2.accdb"
+        connString = provider & dataFile
+        myConnection.ConnectionString = connString
+        myConnection.Open()
+
+
+        Dim str As String
+        str = "INSERT INTO Personal ([Title], [First Name], [Surname], [Email], [DOB], [Address], [Identification provided], [TFN], [Password], [Business], [Business Name], [ABN]) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        Dim cmd As OleDbCommand = New OleDbCommand(str, myConnection)
+        cmd.Parameters.Add(New OleDbParameter("Title", title))
+        cmd.Parameters.Add(New OleDbParameter("First Name", firstName))
+        cmd.Parameters.Add(New OleDbParameter("Surname", surname))
+        cmd.Parameters.Add(New OleDbParameter("Email", email))
+        cmd.Parameters.Add(New OleDbParameter("DOB", Trythis))
+        cmd.Parameters.Add(New OleDbParameter("Address", address))
+        cmd.Parameters.Add(New OleDbParameter("Identification provided", "Yes"))
+        cmd.Parameters.Add(New OleDbParameter("TFN", taxFileNumber))
+        cmd.Parameters.Add(New OleDbParameter("Password", password))
+        cmd.Parameters.Add(New OleDbParameter("Business", "No"))
+        cmd.Parameters.Add(New OleDbParameter("Business Name", "NA"))
+        cmd.Parameters.Add(New OleDbParameter("ABN", 0))
+        Try
+            cmd.ExecuteNonQuery()
+            cmd.Dispose()
+            myConnection.Close()
+        Catch ex As Exception
+            MsgBox(ex.Message)
+        End Try
+
+        myConnection.Open()
+
+        Dim str1 As String = "SELECT * FROM Personal WHERE ([TFN] = " & taxFileNumber & ")"
+        Dim cmd1 As OleDbCommand = New OleDbCommand(str1, myConnection)
+        Dim sdr As OleDbDataReader = cmd1.ExecuteReader()
+
+        sdr.Read()
+
+        Dim idNumber As String = sdr("ID Number").ToString
+        MessageBox.Show("Account Created Successfully. Your ID Number is C000" + idNumber + ". Please record this for your own records and welcome to the BoN. Your first account has already been created and the promotional credit you have recieved has been applied to your account")
+        myConnection.Close()
+
+        myConnection.Open()
+        Dim str2 As String
+        str2 = "INSERT INTO Accounts ([Balance], [Type], [ID Number]) VALUES (?, ?, ?)"
+
+        Dim cmd2 As OleDbCommand = New OleDbCommand(str2, myConnection)
+        cmd2.Parameters.Add(New OleDbParameter("Balance", 100))
+        cmd2.Parameters.Add(New OleDbParameter("Type", "Savings"))
+        cmd2.Parameters.Add(New OleDbParameter("Id Number", idNumber))
+
+        Try
+            cmd2.ExecuteNonQuery()
+            cmd2.Dispose()
+            myConnection.Close()
+        Catch ex As Exception
+            MsgBox(ex.Message)
+        End Try
+
+        HomePage.Show()
+        Me.Close()
+
+
+    End Sub
+End Class
+
+'Support Ticket index
+ Private Sub TabSupportTickets_SelectedIndexChanged(sender As Object, e As EventArgs) Handles TabSupportTickets.SelectedIndexChanged
+        Dim indexOfSelectedTab As Integer = TabSupportTickets.SelectedIndex
+
+        If indexOfSelectedTab = 0 Then
+            Try
+                Me.SupportTableAdapter.FillByEmployee(Me.UserdataV2DataSet.Support, UserName)
+            Catch ex As System.Exception
+                System.Windows.Forms.MessageBox.Show(ex.Message)
+            End Try
+        End If
+
+        If indexOfSelectedTab = 1 Then
+            Try
+                Me.SupportTableAdapter.FillByUnclaimed(Me.UserdataV2DataSet.Support)
+            Catch ex As System.Exception
+                System.Windows.Forms.MessageBox.Show(ex.Message)
+            End Try
+
+        End If
+    End Sub
+    
+    'Paybill
+     Private Sub BtnContinue_Click(sender As Object, e As EventArgs) Handles btnSubmit.Click
+
+        Dim accountDetails As String = Mid(cbxAccounts.Text(), 2, Len(cbxAccounts.Text()))
+        withdrawAccount = Convert.ToInt32(accountDetails)
+
+        myConnection.Open()
+        Dim str As String = "SELECT * FROM Accounts WHERE ([ID Number] = " & UserName & ")"
+        Dim cmd As OleDbCommand = New OleDbCommand(str, myConnection)
+        Dim sdr As OleDbDataReader = cmd.ExecuteReader()
+        sdr.Read()
+        balance = Convert.ToInt32(sdr("Balance"))
+        myConnection.Close()
+
+        Dim withdraw As Int32 = Convert.ToInt32(TbxAmount.Text)
+
+
+        If withdraw < 0 Then
+            MessageBox.Show("Incorrect format")
+            myConnection.Close()
+            Return
+
+        ElseIf withdraw > balance Then
+            MessageBox.Show("Isufficient Funds")
+            myConnection.Close()
+            Return
+
+        End If
+
+        Dim newBalance As Int32
+        newBalance = balance - withdraw
+
+        myConnection.Open()
+        Dim str2 As String
+
+        str2 = "UPDATE Accounts SET Balance = " & newBalance & " WHERE [Account Number] = " & withdrawAccount & ""
+        Dim cmd2 As OleDbCommand = New OleDbCommand(str2, myConnection)
+
+        cmd2.ExecuteNonQuery()
+        cmd2.Dispose()
+        myConnection.Close()
+        MessageBox.Show("Success. your account balance is " + Convert.ToString(newBalance))
+
+        myConnection.Close()
+
+        myConnection.Open()
+
+        Dim biller As String = TbxBillerCode.Text
+        Dim reference As String = TbxReferenceNo.Text
+        Dim description As String = tbxDescription.Text
+        withdraw = 0 - withdraw
+
+
+        Dim str3 As String
+        str3 = "INSERT INTO [Bill Pay] ([ID Number], [From Account Number], [Biller Code], [Reference Number], [Amount], Description)  SELECT " & UserName & "," & withdrawAccount & ",'" & biller & "','" & reference & "'," & withdraw & ",'" & description & "'"
+        Console.WriteLine(str3)
+        Dim cmd3 As OleDbCommand = New OleDbCommand(str3, myConnection)
+
+        Try
+            cmd3.ExecuteNonQuery()
+            cmd3.Dispose()
+            myConnection.Close()
+        Catch ex As Exception
+            MsgBox(ex.Message)
+        End Try
+
+        loginViewCustomer.Show()
+        Me.Close()
+    End Sub
